@@ -1,0 +1,4 @@
+
+#define ESSID "myssidhere"
+#define PSK   "mypskhere"
+
