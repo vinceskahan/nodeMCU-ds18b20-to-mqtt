@@ -32,3 +32,16 @@ If you see a temperature of -185 degF then you aren't getting data from the sens
 This is likely either a loose/disconnected DATA jumper, or you are connected to
 a pin on the 'hardware' that does not match the pin in the .ino file you loaded.
 
+## disclaimer
+
+This is probably pretty horrid code, but it seems to work.  Usually.
+
+I'm currently battling wifi and/or MQTT drops which are intermittent and
+difficult to resolve.  I have LED blink codes enabled to blink the onboard
+LED with different patterns to try to identify what the situation is without
+needing to run connected to a computer and monitoring the serial console.
+
+* Successful publishing = a few 100ms flashes of the LED
+* MQTT needing to reconnect = a few 100ms, a few 500ms, a few 100ms flashes ala SOS
+* MQTT error sending = a few 1s flashes
+
