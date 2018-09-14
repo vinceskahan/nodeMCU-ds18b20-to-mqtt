@@ -109,7 +109,7 @@ void setup_mqtt() {
   while (!client.connected()) {
     Serial.println("Connecting to MQTT...");
     if (client.connect("ESP8266Client" )) {
-      Serial.print("connected");
+      Serial.println("connected");
       client.subscribe(mqttTopic);
     } else {
       Serial.print("failed with state ");
@@ -230,16 +230,7 @@ void loop() {
          // belt and suspenders just in case wifi ever drops
         if (WiFi.status() != WL_CONNECTED) {
            Serial.println("wifi needs to reconnect in loop()...");
-           //ESP.reset();  // reboot?
-           //setup_wifi();
-           WiFi.begin(ESSID,PSK);
-           while (WiFi.status() != WL_CONNECTED) {
-            delay(1000);
-            Serial.print(".");
-           }
-           Serial.println("Connected to the WiFi network via loop()");
-           Serial.print("IP address: ");
-           Serial.println(WiFi.localIP());
+           ESP.restart();
         }  
         setup_mqtt();
         return;
