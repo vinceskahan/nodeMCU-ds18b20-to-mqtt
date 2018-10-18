@@ -1,5 +1,5 @@
 /*
- *  read a ds18b20 sensor and publish the value with MQTT, with status to the onboard LED
+ *  read a ds18b20 sensor and publish the value with MQTT, with status to the onboard LED and OLED display
  *
  * references:
  *   https://techtutorialsx.com/2017/04/09/esp8266-connecting-to-mqtt-broker/
@@ -7,6 +7,48 @@
  *   https://github.com/arduino-libraries/NTPClient/blob/master/examples/Basic/Basic.ino
  *
  * this is tested on a nodeMCU esp8266
+ *  * this is a merge of:
+ *    - the adafruit ssd1306_128x32_i2c.ino example sketch from their library
+ *    - my local tweaks, modifications, and crimes against arduino best practices
+ *
+ * all bugs are mine, please don't bother the nice folks at Adafruit who wrote the code this is based on... 
+ *
+ * ----------------------------------------------
+ *
+ * Wiring Setup:
+ *
+ *   ds18b20:
+ *     GRD to ground rail on breadboard
+ *     VCC to power rail on breadboard
+ *     DAT to GPIO2 (nodeMCU pin D4)
+ *     10k ohm resistor between power and ground
+ *
+ *   OLED:
+ *    SDA to GPIO4 (nodeMCU pin D2)
+ *    SCL to GPIO5 (nodeMCU pin D1)
+ *    GRD to ground rail on breadboard
+ *    VCC to power rail on breadboard
+ *
+ *   nodeMCU:
+ *    D1 (nodeMCU GPIO5) to OLED SDA
+ *    D2 (nodeMCU GPIO4) to OLED SCL
+ *    D4 to ds18b20 data pin
+ *    3V3  to power rail on breadboard
+ *    GND  to ground rail on breaddboard
+ *
+ * ----------------------------------------------
+ *
+ * Software used here:
+ *     Arduino IDE 1.8.5 on a Macbook Air
+ *        at least one driver for the Air to be able to load the nodeMCU
+ *        but which one has been list to the sands of time...
+ *     Adafruit SSD1306 library version 1.1.2
+ *     Adafruit GFX library version 1.2.7
+ *
+ * Installed but probably not needed for the code below....
+ *     DHT sensor library by Adafruit version 1.3.0
+ *     ESP8266 Weather Station by ThingPulse version 1.3.2
+ *     ESP8266 and ESP32 Oled Driver for SSD1306 by Daniel Eichhorn et.al. version 3.2.7
  *
 */
 
@@ -25,6 +67,24 @@
 
 #include "wifi.h"          // #define ESSID and PSK in this, see wifi.h.example for syntax
 
+//--- for OLED display ---
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include "DHT.h"
+
+/*
+ * for the particular mono OLED display from the Weather Station kit
+ * we need to fake the OLED_RESET setting below.  Some smart fellow
+ * on internet used LED_BUILTIN to make this work, which worked for me
+ * so I used it here too.  Unfortunately I lost the page/author of the
+ * actual smarts (sorry) so I can't credit them with the wizardry.
+*/
+
+#define OLED_RESET LED_BUILTIN
+Adafruit_SSD1306 display(OLED_RESET);
+
 //-----------------------------------------------------
 //
 // Start editing here
@@ -32,7 +92,7 @@
 //
 
 #define PROGRAM_NAME "vds-duino-test"    // so I can tell what is loaded on the nodeMCU long after the fact.
-#define PROGRAM_VER  "2"                 // Based on a great idea from reddit user /u/blimpway in /r/esp8266
+#define PROGRAM_VER  "3"                 // Based on a great idea from reddit user /u/blimpway in /r/esp8266
 
 const int DELAY_MS = 15000;               // how often to publish in ms
 
@@ -41,7 +101,7 @@ const int mqttPort = 1883;
 //const char* mqttUser = "none";         // also alter the setup_mqtt( ) routine below if
 //const char* mqttPass = "none;          // you password-protect your MQTT broker
 
-#define ONE_WIRE_BUS 4                   // nodemcu pin D2 the ds18b20 data pin is connect to
+#define ONE_WIRE_BUS 2                   // nodemcu pin D4 the ds18b20 data pin is connect to
 
 #define LED D0                           // status LED we blink - NodeMCU pin GPIO16 (D0).
 
@@ -145,11 +205,72 @@ void setup() {
   
   pinMode(LED, OUTPUT);    // LED pin as output.
   
-  setup_wifi();
-  setup_mqtt();
-  sensors.begin();
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.display();  // show Adafruit splash screen initially
+  
+  delay(2000);
+  display.clearDisplay();
+  display.display();
 
+  display.setTextSize(0);
+  display.setTextColor(WHITE);
+  display.setCursor(10,1);
+  display.println("connecting to wifi");
+  display.display();
+  
+  delay(2000);
+  
+  setup_wifi();
+  display.setCursor(10,10);
+  display.println("success!");
+  display.setCursor(10,20);
+  display.println(WiFi.localIP());
+  display.display();
+  
+  delay(2000); 
+  display.clearDisplay();
+  display.display();
+  
+  display.setTextSize(0);
+  display.setTextColor(WHITE);
+  display.setCursor(10,1);
+  display.println("connecting to mqtt");
+  display.display();
+  
+  setup_mqtt();
+  
+  delay(2000);
+  display.setCursor(10,10);
+  display.println("success!");
+  display.display();
+
+  delay(2000);
+  display.clearDisplay();
+  display.display();
+
+  display.setTextSize(0);
+  display.setTextColor(WHITE);
+  display.setCursor(10,1);
+  display.println("setting up sensors");
+  display.display();
+
+  sensors.begin();
+  
+  delay(2000);   
+  display.clearDisplay();
+  display.display();
+
+  display.setTextSize(0);
+  display.setTextColor(WHITE);
+  display.setCursor(10,1);
+  display.println("done setup");
+  display.display();
+  
   Serial.println("done setup...");
+  delay(2000); 
+  display.clearDisplay();
+  display.display();
+
 }
 
 /*
@@ -167,11 +288,35 @@ void loop() {
   float degF = read_ds18b20();
   if ((degF > -20) && (degF < 140)) {
     root["degF"] = degF;
+    delay(2000);   
+    display.clearDisplay();
+    display.display();
+    display.setTextSize(0);
+    display.setTextColor(WHITE);
+    display.setCursor(25,10);
+    display.setTextSize(2);
+    display.print(degF);
+    display.println(" F");
+    display.display();
+   
   } else {
     Serial.print("error detecting degF: ");
     Serial.println(degF);
-    delay(5000);
-    return;                // hopefully this prevents publishing no value for degF
+      
+   delay(2000);   
+   display.clearDisplay();
+   display.display();
+
+   display.setTextSize(0);
+   display.setTextColor(WHITE);
+   display.setCursor(25,5);
+   display.println("error: bad degF");
+   display.setCursor(45,20);
+   display.println(degF);
+   display.display();
+  
+   delay(5000);
+   return;                // hopefully this prevents publishing no value for degF
   }
 
   char JSONmessageBuffer[200];
@@ -207,7 +352,6 @@ void loop() {
         return;
     }
 
-  // to do: the delay should be defined at the top of this program
   delay(DELAY_MS);
 
 }
