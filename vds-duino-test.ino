@@ -80,10 +80,15 @@
  * on internet used LED_BUILTIN to make this work, which worked for me
  * so I used it here too.  Unfortunately I lost the page/author of the
  * actual smarts (sorry) so I can't credit them with the wizardry.
+ * 
+ * unfortunately this will blink the onboard bright-blue LED every time
+ * the screen refreshes.....
+ * 
 */
 
 #define OLED_RESET LED_BUILTIN
 Adafruit_SSD1306 display(OLED_RESET);
+
 
 //-----------------------------------------------------
 //
@@ -92,7 +97,7 @@ Adafruit_SSD1306 display(OLED_RESET);
 //
 
 #define PROGRAM_NAME "vds-duino-test"    // so I can tell what is loaded on the nodeMCU long after the fact.
-#define PROGRAM_VER  "3"                 // Based on a great idea from reddit user /u/blimpway in /r/esp8266
+#define PROGRAM_VER  "4"                 // Based on a great idea from reddit user /u/blimpway in /r/esp8266
 
 const int DELAY_MS = 15000;               // how often to publish in ms
 
@@ -187,6 +192,25 @@ float read_ds18b20() {
  return temp0;
 }
 
+void printProgramVersion() {
+  Serial.print("program name = ");
+  Serial.print(PROGRAM_NAME);
+  Serial.print(", ver = ");
+  Serial.println(PROGRAM_VER);
+  Serial.print("chip id = ");
+  Serial.println(chipid);
+
+  display.setTextSize(0);
+  display.setTextColor(WHITE);
+  display.setCursor(10,1);
+  display.println(PROGRAM_NAME);
+  display.setCursor(10,20);
+  display.println(PROGRAM_VER);
+  display.display();
+
+  
+}
+
 /*
  * the overall setup routine
  *
@@ -196,22 +220,19 @@ void setup() {
 
   Serial.begin(115200);
   delay(5000);
-  Serial.print("program name = ");
-  Serial.print(PROGRAM_NAME);
-  Serial.print(", ver = ");
-  Serial.println(PROGRAM_VER);
-  Serial.print("chip id = ");
-  Serial.println(chipid);
+  printProgramVersion();
   
   pinMode(LED, OUTPUT);    // LED pin as output.
-  
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+  delay(2000);
   display.display();  // show Adafruit splash screen initially
   
   delay(2000);
   display.clearDisplay();
   display.display();
 
+  // setup wifi
   display.setTextSize(0);
   display.setTextColor(WHITE);
   display.setCursor(10,1);
@@ -230,7 +251,8 @@ void setup() {
   delay(2000); 
   display.clearDisplay();
   display.display();
-  
+
+  // setup mqtt 
   display.setTextSize(0);
   display.setTextColor(WHITE);
   display.setCursor(10,1);
@@ -248,6 +270,7 @@ void setup() {
   display.clearDisplay();
   display.display();
 
+  // setup sensors
   display.setTextSize(0);
   display.setTextColor(WHITE);
   display.setCursor(10,1);
@@ -265,6 +288,11 @@ void setup() {
   display.setCursor(10,1);
   display.println("done setup");
   display.display();
+  
+  delay(2000);
+  display.clearDisplay();
+  display.display();
+  printProgramVersion();
   
   Serial.println("done setup...");
   delay(2000); 
@@ -290,7 +318,6 @@ void loop() {
     root["degF"] = degF;
     delay(2000);   
     display.clearDisplay();
-    display.display();
     display.setTextSize(0);
     display.setTextColor(WHITE);
     display.setCursor(25,10);
@@ -327,8 +354,6 @@ void loop() {
   if (!client.connected()) {
     Serial.println("mqtt needs to reconnect...");
     Serial.println(JSONmessageBuffer);   // so we see the payload including timestamp
-    //blinkPattern(500,100,3);
-    //blinkPattern(100,100,3);
     setup_mqtt();
     return;                     // hopefully we just re-loop() after MQTT comes up
   }
@@ -339,7 +364,7 @@ void loop() {
   //        (symptoms are system responds to pings, but mqtt never reconnects)
 
   if (client.publish(mqttTopic, JSONmessageBuffer) == true) {
-        blinkPattern(100,100,2);   // a little positive feedback via onboard LED
+        blinkPattern(100,100,1);   // a little positive feedback via onboard LED
     } else {
         Serial.println("Error sending mqtt message");
         Serial.println(JSONmessageBuffer); // so we see the payload including timestamp
