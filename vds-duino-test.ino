@@ -97,7 +97,7 @@ Adafruit_SSD1306 display(OLED_RESET);
 //
 
 #define PROGRAM_NAME "vds-duino-test"    // so I can tell what is loaded on the nodeMCU long after the fact.
-#define PROGRAM_VER  "4"                 // Based on a great idea from reddit user /u/blimpway in /r/esp8266
+#define PROGRAM_VER  "5"                 // Based on a great idea from reddit user /u/blimpway in /r/esp8266
 
 const int DELAY_MS = 15000;               // how often to publish in ms
 
@@ -128,6 +128,11 @@ String topicPrefix     = "esp/obs/";
 String chipid          = String(ESP.getChipId()).c_str();
 String together        = topicPrefix + chipid;
 const char * mqttTopic = together.c_str();
+
+// similarly lets do a unique client id based on chip id
+String clientPrefix         = "esp-";
+String clientTogether             = clientPrefix + chipid;
+const char * mqttClientName = clientTogether.c_str();
 
 /*
  * set up the wifi connection
@@ -170,7 +175,7 @@ void setup_mqtt() {
   client.setCallback(callback);
   while (!client.connected()) {
     Serial.println("Connecting to MQTT...");
-    if (client.connect("ESP8266Client" )) {
+    if (client.connect(mqttClientName)) {
       Serial.println("connected");
       client.subscribe(mqttTopic);
     } else {
@@ -199,14 +204,19 @@ void printProgramVersion() {
   Serial.println(PROGRAM_VER);
   Serial.print("chip id = ");
   Serial.println(chipid);
+  Serial.print("mqtt clientname = ");
+  Serial.println(mqttClientName);
 
   display.setTextSize(0);
   display.setTextColor(WHITE);
   display.setCursor(10,1);
   display.println(PROGRAM_NAME);
-  display.setCursor(10,20);
+  display.setCursor(10,10);
   display.println(PROGRAM_VER);
+  display.setCursor(10,20);
+  display.println(mqttClientName);
   display.display();
+  delay(5000);
 
   
 }
