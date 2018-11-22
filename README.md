@@ -34,14 +34,11 @@ a pin on the 'hardware' that does not match the pin in the .ino file you loaded.
 
 ## disclaimer
 
-This is probably pretty horrid code, but it seems to work.  Usually.
+This is probably pretty horrid code, but it seems to work.
 
-I'm currently battling wifi and/or MQTT drops which are intermittent and
-difficult to resolve.  I have LED blink codes enabled to blink the onboard
-LED with different patterns to try to identify what the situation is without
-needing to run connected to a computer and monitoring the serial console.
+The one downside at this moment is that the onboard LED is used as reset for the display,
+so every time the display refreshes you get a retina-blinding blue LED flash.  More than
+annoying especially in a dark room.  I'm still looking into a solution that is dark room safe.
 
-* Successful publishing = a few 100ms flashes of the LED
-* MQTT needing to reconnect = a few 100ms, a few 500ms, a few 100ms flashes ala SOS
-* MQTT error sending = a few 1s flashes
+You also might want to put a LightDims on the OLED, as those are very very bright.
 
